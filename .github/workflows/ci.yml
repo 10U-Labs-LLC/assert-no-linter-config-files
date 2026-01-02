@@ -73,8 +73,8 @@ jobs:
       - name: Check for inline lint disables
         uses: 10U-Labs-LLC/assert-no-inline-lint-disables@latest
         with:
-          files: src/**/*.py test/**/*.py
-          linters: pylint,mypy
+          files: src/**/*.py test/**/*.py .github/workflows/*.yml
+          linters: pylint,mypy,yamllint
       - name: Install yamllint
         run: pip install yamllint
       - name: yamllint
