@@ -71,7 +71,7 @@ jobs:
         with:
           python-version: "3.13"
       - name: Check for inline lint disables
-        uses: 10U-Labs-LLC/assert-no-inline-lint-disables@main
+        uses: 10U-Labs-LLC/assert-no-inline-lint-disables@latest
         with:
           files: src/ test/
           linters: pylint,mypy,yamllint
