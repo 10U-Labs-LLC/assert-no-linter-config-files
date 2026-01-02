@@ -29,6 +29,7 @@ assert-no-linter-config-files --linters LINTERS [OPTIONS] DIRECTORY [DIRECTORY .
 - `DIRECTORY` - One or more directories to scan
 
 ### Optional Arguments
+
 - `--exclude PATTERN` - Glob pattern to exclude paths (repeatable)
 - `--quiet` - Suppress output, exit code only
 - `--count` - Print finding count only
