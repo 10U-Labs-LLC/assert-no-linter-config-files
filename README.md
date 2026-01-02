@@ -57,13 +57,16 @@ assert-no-linter-config-files . || exit 1
 
 The tool flags the presence of these files anywhere in the scanned tree:
 
-| Tool     | Files                                                                                       |
-|----------|----------------------------------------------------------------------------------------------|
-| pylint   | `.pylintrc`, `pylintrc`, `.pylintrc.toml`                                                   |
-| pytest   | `pytest.ini`                                                                                |
-| mypy     | `mypy.ini`, `.mypy.ini`                                                                     |
-| yamllint | `.yamllint`, `.yamllint.yml`, `.yamllint.yaml`                                              |
-| jscpd    | `.jscpd.json`, `.jscpd.yml`, `.jscpd.yaml`, `.jscpd.toml`, `.jscpdrc`, `.jscpdrc.*`         |
+**pylint:** `.pylintrc`, `pylintrc`, `.pylintrc.toml`
+
+**pytest:** `pytest.ini`
+
+**mypy:** `mypy.ini`, `.mypy.ini`
+
+**yamllint:** `.yamllint`, `.yamllint.yml`, `.yamllint.yaml`
+
+**jscpd:** `.jscpd.json`, `.jscpd.yml`, `.jscpd.yaml`, `.jscpd.toml`,
+`.jscpdrc`, `.jscpdrc.json`, `.jscpdrc.yml`, `.jscpdrc.yaml`
 
 ### Embedded Config Sections
 
