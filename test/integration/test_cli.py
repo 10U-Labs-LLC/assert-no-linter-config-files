@@ -244,3 +244,82 @@ class TestBehaviorModifiers:
         ])
         assert code == 0
         assert "pylint" in stdout
+
+
+@pytest.mark.integration
+class TestVerboseFlag:
+    """Tests for the --verbose flag."""
+
+    def test_verbose_shows_linters(self, tmp_path: Path, run_main_with_args) -> None:
+        """--verbose shows which linters are being checked."""
+        code, stdout, _ = run_main_with_args([
+            "--linters", "pylint,mypy", "--verbose", str(tmp_path)
+        ])
+        assert code == 0
+        assert "Checking for:" in stdout
+        assert "mypy" in stdout
+        assert "pylint" in stdout
+
+    def test_verbose_shows_scanning(self, tmp_path: Path, run_main_with_args) -> None:
+        """--verbose shows directories being scanned."""
+        code, stdout, _ = run_main_with_args([
+            "--linters", "pylint", "--verbose", str(tmp_path)
+        ])
+        assert code == 0
+        assert "Scanning:" in stdout
+        assert str(tmp_path) in stdout
+
+    def test_verbose_shows_findings(self, tmp_path: Path, run_main_with_args) -> None:
+        """--verbose shows findings as they are found."""
+        (tmp_path / ".pylintrc").touch()
+        code, stdout, _ = run_main_with_args([
+            "--linters", "pylint", "--verbose", str(tmp_path)
+        ])
+        assert code == 1
+        assert "pylint" in stdout
+        assert "config file" in stdout
+
+    def test_verbose_shows_summary(self, tmp_path: Path, run_main_with_args) -> None:
+        """--verbose shows summary at end."""
+        (tmp_path / ".pylintrc").touch()
+        code, stdout, _ = run_main_with_args([
+            "--linters", "pylint", "--verbose", str(tmp_path)
+        ])
+        assert code == 1
+        assert "Scanned 1 directory(ies)" in stdout
+        assert "found 1 finding(s)" in stdout
+
+    def test_verbose_no_findings_summary(
+        self, tmp_path: Path, run_main_with_args
+    ) -> None:
+        """--verbose shows zero findings in summary."""
+        code, stdout, _ = run_main_with_args([
+            "--linters", "pylint", "--verbose", str(tmp_path)
+        ])
+        assert code == 0
+        assert "found 0 finding(s)" in stdout
+
+    def test_verbose_with_fail_fast(self, tmp_path: Path, run_main_with_args) -> None:
+        """--verbose with --fail-fast shows summary with 1 finding."""
+        (tmp_path / ".pylintrc").touch()
+        (tmp_path / "mypy.ini").touch()
+        code, stdout, _ = run_main_with_args([
+            "--linters", "pylint,mypy", "--verbose", "--fail-fast", str(tmp_path)
+        ])
+        assert code == 1
+        assert "found 1 finding" in stdout
+
+    def test_verbose_multiple_directories(
+        self, tmp_path: Path, run_main_with_args
+    ) -> None:
+        """--verbose shows scanning for each directory."""
+        first = tmp_path / "first"
+        second = tmp_path / "second"
+        first.mkdir()
+        second.mkdir()
+        code, stdout, _ = run_main_with_args([
+            "--linters", "pylint", "--verbose", str(first), str(second)
+        ])
+        assert code == 0
+        assert stdout.count("Scanning:") == 2
+        assert "Scanned 2 directory(ies)" in stdout

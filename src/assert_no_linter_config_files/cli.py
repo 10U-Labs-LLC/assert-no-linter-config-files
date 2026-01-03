@@ -101,12 +101,78 @@ def output_findings(
             print(finding)
 
 
+def _print_verbose_summary(dirs_scanned: int, finding_count: int) -> None:
+    """Print verbose summary of scan results."""
+    print(f"Scanned {dirs_scanned} directory(ies), found {finding_count} finding(s)")
+
+
+def _handle_fail_fast(
+    finding: Finding,
+    dirs_scanned: int,
+    args: argparse.Namespace,
+) -> None:
+    """Handle fail-fast output and exit."""
+    if args.verbose:
+        print(finding)
+        _print_verbose_summary(dirs_scanned, 1)
+    elif not args.quiet:
+        output_findings([finding], args.json, args.count)
+    sys.exit(EXIT_FINDINGS)
+
+
+def _determine_exit_code(
+    all_findings: list[Finding],
+    had_error: bool,
+    warn_only: bool,
+) -> int:
+    """Determine the exit code based on results."""
+    if warn_only:
+        return EXIT_SUCCESS
+    if all_findings:
+        return EXIT_FINDINGS
+    if had_error:
+        return EXIT_ERROR
+    return EXIT_SUCCESS
+
+
+def _process_directory(
+    directory: Path,
+    args: argparse.Namespace,
+    linters: frozenset[str],
+    dirs_scanned: int,
+    all_findings: list[Finding],
+) -> tuple[int, bool]:
+    """Process a single directory. Returns (dirs_scanned, had_error)."""
+    if args.verbose:
+        print(f"Scanning: {directory}")
+
+    try:
+        findings = scan_directory(
+            directory,
+            linters=linters,
+            exclude_patterns=args.exclude,
+        )
+        dirs_scanned += 1
+
+        if findings and args.fail_fast:
+            _handle_fail_fast(findings[0], dirs_scanned, args)
+
+        if args.verbose:
+            for finding in findings:
+                print(finding)
+
+        all_findings.extend(findings)
+        return dirs_scanned, False
+    except OSError as e:
+        print(f"Error reading: {e}", file=sys.stderr)
+        return dirs_scanned, True
+
+
 def main() -> None:
     """Run the assert-no-linter-config-files CLI."""
     parser = create_parser()
     args = parser.parse_args()
 
-    # Parse and validate linters
     try:
         linters = parse_linters(args.linters)
     except ValueError as e:
@@ -126,54 +192,14 @@ def main() -> None:
             had_error = True
             continue
 
-        if args.verbose:
-            print(f"Scanning: {directory}")
-
-        try:
-            findings = scan_directory(
-                directory,
-                linters=linters,
-                exclude_patterns=args.exclude,
-            )
-            dirs_scanned += 1
-
-            if findings and args.fail_fast:
-                if args.verbose:
-                    print(findings[0])
-                    print(
-                        f"Scanned {dirs_scanned} directory(ies), "
-                        f"found 1 finding"
-                    )
-                elif not args.quiet:
-                    output_findings([findings[0]], args.json, args.count)
-                sys.exit(EXIT_FINDINGS)
-
-            if args.verbose:
-                for finding in findings:
-                    print(finding)
-
-            all_findings.extend(findings)
-        except OSError as e:
-            print(f"Error reading: {e}", file=sys.stderr)
-            had_error = True
-
-    # Handle output
-    if args.verbose:
-        print(
-            f"Scanned {dirs_scanned} directory(ies), "
-            f"found {len(all_findings)} finding(s)"
+        dirs_scanned, dir_error = _process_directory(
+            directory, args, linters, dirs_scanned, all_findings
         )
+        had_error = had_error or dir_error
+
+    if args.verbose:
+        _print_verbose_summary(dirs_scanned, len(all_findings))
     elif not args.quiet:
         output_findings(all_findings, args.json, args.count)
 
-    # Determine exit code
-    if args.warn_only:
-        sys.exit(EXIT_SUCCESS)
-
-    if all_findings:
-        sys.exit(EXIT_FINDINGS)
-
-    if had_error:
-        sys.exit(EXIT_ERROR)
-
-    sys.exit(EXIT_SUCCESS)
+    sys.exit(_determine_exit_code(all_findings, had_error, args.warn_only))
