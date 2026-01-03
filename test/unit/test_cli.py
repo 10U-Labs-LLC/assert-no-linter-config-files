@@ -57,35 +57,27 @@ class TestPrintVerboseSummary:
 class TestHandleFailFast:
     """Tests for _handle_fail_fast helper."""
 
-    def test_verbose_prints_finding_and_summary(self) -> None:
-        """In verbose mode, prints finding and summary."""
-        args = argparse.Namespace(verbose=True, quiet=False, json=False, count=False)
+    @pytest.mark.parametrize("verbose,quiet,expected_calls", [
+        (True, False, 2),   # verbose: prints finding + summary
+        (False, True, 0),   # quiet: no output
+        (False, False, 1),  # normal: prints finding
+    ])
+    def test_output_modes(
+        self, verbose: bool, quiet: bool, expected_calls: int
+    ) -> None:
+        """Test different output modes for fail-fast."""
+        args = argparse.Namespace(
+            verbose=verbose, quiet=quiet, json=False, count=False
+        )
         finding = Finding("test.py", "pylint", "config file")
         with patch("builtins.print") as mock_print:
             with pytest.raises(SystemExit) as exc_info:
                 _handle_fail_fast(finding, 1, args)
             assert exc_info.value.code == EXIT_FINDINGS
-            assert mock_print.call_count >= 2
-
-    def test_quiet_no_output(self) -> None:
-        """In quiet mode, no output."""
-        args = argparse.Namespace(verbose=False, quiet=True, json=False, count=False)
-        finding = Finding("test.py", "pylint", "config file")
-        with patch("builtins.print") as mock_print:
-            with pytest.raises(SystemExit) as exc_info:
-                _handle_fail_fast(finding, 1, args)
-            assert exc_info.value.code == EXIT_FINDINGS
-            mock_print.assert_not_called()
-
-    def test_normal_outputs_finding(self) -> None:
-        """In normal mode, outputs finding."""
-        args = argparse.Namespace(verbose=False, quiet=False, json=False, count=False)
-        finding = Finding("test.py", "pylint", "config file")
-        with patch("builtins.print") as mock_print:
-            with pytest.raises(SystemExit) as exc_info:
-                _handle_fail_fast(finding, 1, args)
-            assert exc_info.value.code == EXIT_FINDINGS
-            mock_print.assert_called_once()
+            if expected_calls == 0:
+                mock_print.assert_not_called()
+            else:
+                assert mock_print.call_count >= expected_calls
 
 
 @pytest.mark.unit
