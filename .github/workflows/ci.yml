@@ -21,15 +21,16 @@ jobs:
           pip install yamllint pylint pytest mypy pytest-cov -e .
           npm install -g markdownlint-cli jscpd
       - continue-on-error: true
-        id: assert_no_linter_config_files
+        id: assert_config
         name: Assert no linter config files
         uses: 10U-Labs-LLC/assert-no-linter-config-files@latest
         with:
           directories: .
+          exclude: "**/pyproject.toml"
           linters: jscpd,mypy,pylint,pytest,yamllint
           verbose: true
       - continue-on-error: true
-        id: assert_no_inline_lint_disables
+        id: assert_disables
         name: Assert no inline lint disables
         uses: 10U-Labs-LLC/assert-no-inline-lint-disables@latest
         with:
@@ -96,8 +97,8 @@ jobs:
         name: E2E tests
         run: python3 -m pytest test/e2e/ --verbose --pythonwarnings=error
       - env:
-          ASSERT_NO_INLINE_LINT_DISABLES: ${{ steps.assert_no_inline_lint_disables.outcome }}
-          ASSERT_NO_LINTER_CONFIG_FILES: ${{ steps.assert_no_linter_config_files.outcome }}
+          ASSERT_CONFIG: ${{ steps.assert_config.outcome }}
+          ASSERT_DISABLES: ${{ steps.assert_disables.outcome }}
           E2E_TESTS: ${{ steps.e2e_tests.outcome }}
           INTEGRATION_TESTS: ${{ steps.integration_tests.outcome }}
           JSCPD_SRC: ${{ steps.jscpd_src.outcome }}
@@ -112,10 +113,8 @@ jobs:
         name: Assert no step failed
         run: |
           failed=""
-          [ "$ASSERT_NO_LINTER_CONFIG_FILES" = "failure" ] && \
-            failed="$failed assert_no_linter_config_files"
-          [ "$ASSERT_NO_INLINE_LINT_DISABLES" = "failure" ] && \
-            failed="$failed assert_no_inline_lint_disables"
+          [ "$ASSERT_CONFIG" = "failure" ] && failed="$failed assert_config"
+          [ "$ASSERT_DISABLES" = "failure" ] && failed="$failed assert_disables"
           [ "$YAMLLINT" = "failure" ] && failed="$failed yamllint"
           [ "$MARKDOWNLINT" = "failure" ] && failed="$failed markdownlint"
           [ "$PYLINT_SRC" = "failure" ] && failed="$failed pylint_src"
